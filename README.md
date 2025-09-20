@@ -34,7 +34,7 @@ It is fully responsive and optimized for different devices.
 ---
 
 ## 📸 Preview
-![Portfolio Preview](https://i.postimg.cc/q738Z8sp/11zon-cropped.png)
+![Portfolio Preview](https://i.postimg.cc/G90ZCMzK/Screenshot-2025-09-20-035034.png)
 
 ---
 
