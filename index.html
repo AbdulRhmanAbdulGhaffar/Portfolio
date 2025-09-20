@@ -10,9 +10,174 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Orbitron:wght@700&family=Exo+2:wght@400;500&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/typed.js@2.1.0/dist/typed.umd.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    
-    <link rel="stylesheet" href="css/style.css">
+    <style>
+        :root {
+            --primary-color: #0DF7F7; /* Electric Blue */
+            --secondary-color: #132D46;
+            --background-color: #020817; /* Near Black */
+            --text-color: #E0E0E0;
+            --card-bg: rgba(13, 37, 63, 0.5);
+            --card-border: rgba(13, 247, 247, 0.15);
+            --glow-color: rgba(13, 247, 247, 0.4);
+            --font-body: 'Exo 2', 'Cairo', sans-serif;
+            --font-heading: 'Orbitron', 'Source Code Pro', monospace;
+        }
+        html { scroll-behavior: smooth; }
+        body {
+            background-color: var(--background-color);
+            color: var(--text-color);
+            font-family: var(--font-body);
+            overflow-x: hidden;
+            opacity: 0;
+            transition: opacity 1s ease-in;
+        }
+        body.loaded { opacity: 1; }
+
+        #plexus-canvas {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%; z-index: -1;
+        }
+
+        .font-cairo { font-family: 'Cairo', sans-serif; }
+        h1, h2, h3, .font-monospace { font-family: var(--font-heading); }
+        
+        .glass-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--card-border); border-radius: 0.75rem;
+            transition: transform 0.3s ease-out, box-shadow 0.3s ease-out, border-color 0.3s ease-out;
+            position: relative;
+            transform-style: preserve-3d;
+        }
+        .glass-card:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 10px 40px var(--glow-color);
+            border-color: rgba(13, 247, 247, 0.5);
+        }
+        
+        #hero { position: relative; overflow: hidden; }
+        .typed-cursor { color: var(--primary-color); animation: blink 0.7s infinite; }
+        @keyframes blink { 50% { opacity: 0; } }
+
+        /* Hero Animation */
+        @keyframes slide-in-fade {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        #hero h1 {
+            animation: slide-in-fade 1s ease-out 0.2s forwards;
+            opacity: 0;
+        }
+        #hero #typed-role, #hero #hero-objective {
+            animation: slide-in-fade 1s ease-out 0.5s forwards;
+            opacity: 0; 
+        }
+        #hero .cta-button {
+             animation: slide-in-fade 1s ease-out 0.7s forwards;
+            opacity: 0; 
+        }
+
+        .fade-in-up { opacity: 0; transform: translateY(40px); transition: opacity 0.8s ease-out, transform 0.8s ease-out; }
+        .fade-in-up.visible { opacity: 1; transform: translateY(0); }
+        
+        #experience-list .timeline-item { position: relative; padding-left: 30px; margin-left: 20px; padding-bottom: 3rem; border-left: 2px solid rgba(13, 247, 247, 0.2); }
+        #experience-list .timeline-item:last-child { border-left: none; padding-bottom: 0; }
+        #experience-list .timeline-icon { position: absolute; left: -12px; top: 4px; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; background: var(--secondary-color); border: 3px solid var(--primary-color); border-radius: 50%; z-index: 1; box-shadow: 0 0 10px var(--primary-color); }
+        
+        #to-top-btn { position: fixed; bottom: 20px; right: 20px; background-color: var(--primary-color); color: #031014; width: 50px; height: 50px; border-radius: 0.5rem; display: none; justify-content: center; align-items: center; font-size: 20px; cursor: pointer; opacity: 0; transition: opacity 0.3s, transform 0.3s; transform: translateY(20px); z-index: 1000; }
+        #to-top-btn.show { display: flex; opacity: 1; transform: translateY(0); }
+
+        .form-input { background-color: var(--secondary-color); border: 1px solid var(--card-border); color: var(--text-color); padding: 0.75rem 1rem; border-radius: 0.5rem; transition: border-color 0.3s, box-shadow 0.3s; font-family: var(--font-body); }
+        .form-input:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 10px var(--glow-color); }
+        
+        .section-title { position: relative; display: inline-block; padding-bottom: 1rem; margin-bottom: 4rem; text-shadow: 0 0 10px var(--glow-color); }
+        .section-title::after { content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 100px; height: 4px; background-color: var(--primary-color); border-radius: 2px; box-shadow: 0 0 15px var(--primary-color); animation: pulse-glow 2s infinite alternate; }
+        @keyframes pulse-glow { from { box-shadow: 0 0 10px var(--glow-color); transform: scaleX(1); } to { box-shadow: 0 0 25px var(--primary-color); transform: scaleX(1.2); } }
+
+        .glitch { animation: glitch 2.5s linear infinite; }
+        @keyframes glitch{ 2%,64%{ transform: translate(2px,0) skew(0deg); } 4%,60%{ transform: translate(-2px,0) skew(0deg); } 62%{ transform: translate(0,0) skew(5deg); } }
+        .glitch::before, .glitch::after{ content: attr(data-text); position: absolute; left: 0; animation: glitch-top 2.5s linear infinite; clip-path: polygon(0 0, 100% 0, 100% 33%, 0 33%); }
+        .glitch::after{ animation: glitch-bottom 2.5s linear infinite; clip-path: polygon(0 67%, 100% 67%, 100% 100%, 0 100%); }
+        @keyframes glitch-top{ 2%,64%{ transform: translate(2px,-2px); } 4%,60%{ transform: translate(-2px,2px); } 62%{ transform: translate(13px,-1px) skew(-13deg); } }
+        @keyframes glitch-bottom{ 2%,64%{ transform: translate(-2px,0); } 4%,60%{ transform: translate(-2px,0); } 62%{ transform: translate(-22px,5px) skew(21deg); } }
+        
+        #terminal { background: rgba(0,0,0,0.6); border: 1px solid var(--card-border); padding: 1.5rem; border-radius: 0.5rem; margin-bottom: 5rem; }
+        #terminal-output { height: 150px; overflow-y: auto; margin-bottom: 1rem; font-family: var(--font-heading); }
+        #terminal-output p { margin-bottom: 0.5rem; }
+        #terminal-input-line { display: flex; align-items: center; }
+        #terminal-prompt { color: var(--primary-color); }
+        #terminal-input { background: transparent; border: none; color: var(--text-color); outline: none; flex-grow: 1; font-family: var(--font-heading); }
+        
+        #preloader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--background-color); z-index: 10000; display: flex; justify-content: center; align-items: center; }
+        #preloader-text { color: var(--primary-color); text-align: left; font-family: var(--font-heading); }
+
+        .cert-logo { 
+            filter: brightness(0) invert(1); 
+            object-fit: contain; 
+            max-height: 55px;
+            max-width: 100%;
+        }
+        .cert-logo.no-filter { filter: none; }
+        .cert-card, #stats-list .glass-card { 
+            display: flex; 
+            flex-direction: column; 
+            text-align: center; 
+            padding: 1.5rem; 
+            justify-content: space-between;
+        }
+        .cert-card h3, .cert-card p, #stats-list p {
+            text-shadow: 0 1px 3px rgba(0,0,0,0.7);
+        }
+        .cert-logo-container { 
+            height: 60px;
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            margin-bottom: 1rem; 
+        }
+
+        .nav-brand { text-shadow: 0 0 5px var(--glow-color), 0 0 10px var(--primary-color); transition: text-shadow 0.3s ease-in-out; }
+        .nav-brand:hover { text-shadow: 0 0 10px var(--glow-color), 0 0 20px var(--primary-color); }
+
+        .cta-button { 
+            transition: transform 0.3s, box-shadow 0.3s, color 0.3s; 
+            color: var(--secondary-color);
+            z-index: 10;
+        }
+        .cta-button:hover { 
+            transform: scale(1.05); 
+            box-shadow: 0 0 20px var(--primary-color); 
+            color: #020817;
+        }
+
+        #certifications {
+            position: relative;
+        }
+        #certifications::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: radial-gradient(var(--primary-color) 0.5px, transparent 0.5px);
+            background-size: 30px 30px;
+            opacity: 0.05;
+            z-index: -1;
+            mask-image: linear-gradient(to bottom, black 50%, transparent 100%);
+        }
+        
+        #expertise-list .glass-card i {
+            transition: transform 0.3s ease-out, text-shadow 0.3s ease-out;
+        }
+        #expertise-list .glass-card:hover i {
+            transform: scale(1.15);
+            text-shadow: 0 0 15px var(--glow-color);
+        }
+
+    </style>
 </head>
 <body class="antialiased">
     <div id="preloader"><div id="preloader-text"></div></div>
@@ -64,9 +229,9 @@
             <h2 class="text-4xl font-bold text-center section-title" data-lang-key="about_title">About Me</h2>
             <div class="flex flex-col md:flex-row items-center gap-16">
                 <div class="md:w-1/3 text-center">
-                    <div class="glass-card p-2 rounded-full inline-block">
-                        <img src="https://i.postimg.cc/zGVdZmKC/11zon-cropped.png" alt="AbdulRhman AbdulGhaffar" class="rounded-full mx-auto w-64 h-64 md:w-80 md:h-80 object-cover">
-                    </div>
+                       <div class="glass-card p-2 rounded-full inline-block">
+                            <img src="https://i.postimg.cc/zGVdZmKC/11zon-cropped.png" alt="AbdulRhman AbdulGhaffar" class="rounded-full mx-auto w-64 h-64 md:w-80 md:h-80 object-cover">
+                       </div>
                 </div>
                 <div class="md:w-2/3 text-center md:text-left">
                     <p class="text-lg leading-relaxed text-gray-300 mb-8" data-lang-key="about_desc"></p>
@@ -88,9 +253,9 @@
                 <i class="fas fa-feather-alt text-6xl text-primary-color mb-4"></i>
                 <p class="text-xl mb-6" data-lang-key="articles_follow_me">To follow my articles and latest developments, connect with me on:</p>
                 <div class="flex justify-center items-center space-x-6">
-                    <a id="articles-linkedin" href="" target="_blank" class="text-3xl text-gray-400 hover:text-primary-color transition transform hover:scale-125"><i class="fab fa-linkedin"></i></a>
-                    <a id="articles-github" href="" target="_blank" class="text-3xl text-gray-400 hover:text-primary-color transition transform hover:scale-125"><i class="fab fa-github"></i></a>
-                    <a id="articles-medium" href="" target="_blank" class="text-3xl text-gray-400 hover:text-primary-color transition transform hover:scale-125"><i class="fab fa-medium"></i></a>
+                     <a id="articles-linkedin" href="" target="_blank" class="text-3xl text-gray-400 hover:text-primary-color transition transform hover:scale-125"><i class="fab fa-linkedin"></i></a>
+                     <a id="articles-github" href="" target="_blank" class="text-3xl text-gray-400 hover:text-primary-color transition transform hover:scale-125"><i class="fab fa-github"></i></a>
+                     <a id="articles-medium" href="" target="_blank" class="text-3xl text-gray-400 hover:text-primary-color transition transform hover:scale-125"><i class="fab fa-medium"></i></a>
                 </div>
             </div>
         </section>
@@ -98,10 +263,11 @@
         <section id="contact" class="fade-in-up">
             <h2 class="text-4xl font-bold text-center section-title" data-lang-key="contact_title">Get In Touch</h2>
             <div class="flex flex-col md:flex-row gap-8">
+                <!-- Contact Form -->
                 <div class="w-full md:w-1/2">
                     <p class="text-center md:text-left text-lg mb-10" data-lang-key="contact_desc">I'm actively seeking new opportunities. If you have a project or a role where my skills can add value, I would be delighted to connect.</p>
                     <div class="glass-card p-8">
-                        <form id="contact-form">
+                         <form id="contact-form">
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6"><input type="text" id="form-name" name="name" class="form-input w-full" data-lang-placeholder="contact_form_name" required><input type="email" id="form-email" name="email" class="form-input w-full" data-lang-placeholder="contact_form_email" required></div>
                             <textarea id="form-message" name="message" rows="5" class="form-input w-full mb-6" data-lang-placeholder="contact_form_message" required></textarea>
                             <button type="submit" class="w-full bg-primary-color text-black font-bold py-3 px-8 rounded-md cta-button" data-lang-key="contact_form_send">Send Message</button>
@@ -109,6 +275,7 @@
                         <p id="form-success-message" class="text-green-400 mt-4 hidden"></p>
                     </div>
                 </div>
+                <!-- Map -->
                 <div class="w-full md:w-1/2">
                     <div class="glass-card p-4 h-full">
                         <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d221164.7933226993!2d31.22419445167735!3d30.05948380630534!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x14583fa60b217c85%3A0x2424d1a525d6f30!2sCairo%2C%2C%20Cairo%20Governorate%2C%20Egypt!5e0!3m2!1sen!2sus!4v1695192135322!5m2!1sen!2sus" width="100%" height="100%" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade" class="rounded-md"></iframe>
@@ -127,10 +294,406 @@
         </section>
     </main>
 
-    <footer class="bg-secondary-color mt-16 py-8"><div class="container mx-auto px-6 text-center text-gray-400"><p>© <span id="footer-year"></span> AbdulRhman AbdulGhaffar. All Rights Reserved.</p></div></footer>
+    <footer class="bg-secondary-color mt-16 py-8"><div class="container mx-auto px-6 text-center text-gray-400"><p>&copy; <span id="footer-year"></span> AbdulRhman AbdulGhaffar. All Rights Reserved.</p></div></footer>
     <button id="to-top-btn" title="Go to top"><i class="fas fa-arrow-up"></i></button>
 
-    <script src="js/data.js"></script>
-    <script src="js/main.js"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const portfolioData = { 
+            contact: { email: "abdulrhman.abdulghaffar001@gmail.com", linkedin: "https://www.linkedin.com/in/AbdulRhmanAbdulGhaffar", github: "https://github.com/AbdulRhmanAbdulGhaffar", medium: "https://medium.com/@aboodi_abdo" },
+            en: {
+                text: { 
+                    name_short: "AbdulRhman AbdulGhaffar", 
+                    nav_about: "About", 
+                    nav_expertise: "Expertise", 
+                    nav_projects: "Projects", 
+                    nav_articles: "Articles",
+                    nav_contact: "Contact", 
+                    hero_greeting: "Hi, I'm AbdulRhman AbdulGhaffar", 
+                    hero_role: ["Cyber Security Specialist", "Incident Response Analyst", "System Administration"], 
+                    hero_cta: "View My Work", 
+                    about_title: "About Me", 
+                    about_view_cv: "View CV", 
+                    stats_experience: "Years of Experience", 
+                    stats_projects: "Projects Completed", 
+                    stats_certs: "Certifications Earned", 
+                    stats_tools: "Tools Mastered", 
+                    expertise_title: "Areas of Expertise", 
+                    experience_title: "Professional Experience", 
+                    skills_title: "Technical Arsenal", 
+                    certifications_title: "Certifications & Training", 
+                    projects_title: "Featured Projects", 
+                    articles_title: "My Articles",
+                    articles_follow_me: "To follow my articles and latest developments, connect with me on:",
+                    contact_title: "Initiate Contact", 
+                    contact_desc: "I'm actively seeking new opportunities. If you have a project or a role where my skills can add value, let's connect and build a more secure future.", 
+                    contact_form_name: "Your Name / Alias", 
+                    contact_form_email: "Your Secure Email", 
+                    contact_form_message: "Your Encrypted Message", 
+                    contact_form_send: "Transmit Securely", 
+                    contact_form_success: "Transmission successful. I will respond shortly.", 
+                    project_filter_all: "All", 
+                    project_link_text: "Access Project" 
+                },
+                objective: "A highly motivated Incident Response Analyst, specializing in rapid threat detection, forensic analysis, and decisive incident containment. I leverage cutting-edge SIEM solutions and proactive threat hunting to fortify digital defenses and ensure unwavering operational resilience against sophisticated cyber threats.",
+                about: "As a cyber sentinel, I am passionate about the art of digital defense. My expertise lies in navigating the complex landscape of cybersecurity threats. With a background in SOC operations and hands-on experience in threat hunting and log analysis with tools like Splunk and Wazuh, I am adept at identifying, neutralizing, and dissecting security incidents. I am a lifelong learner, committed to staying ahead of the curve in the ever-evolving theater of cyber warfare.",
+                stats: [ { value: "1+", label_en: "Year of Experience" }, { value: "10+", label_en: "Completed Projects" }, { value: "15+", label_en: "Certifications" }, { value: "15+", label_en: "Tools Mastered" } ],
+                expertise: [ { icon: "fas fa-shield-virus", title: "Threat Detection & Analysis", description: "Utilizing SIEM tools and log analysis to identify, triage, and investigate potential security threats in real-time." }, { icon: "fas fa-fire-extinguisher", title: "Incident Containment & Eradication", description: "Applying structured response methodologies to contain threats, minimize impact, and eradicate malicious actors from the network." }, { icon: "fas fa-microscope", title: "Digital Forensics", description: "Conducting basic memory, disk, and volatile data analysis to uncover attack vectors and gather critical evidence." } ],
+                experience: [ { title: "Incident Response Analyst Trainee", company: "DEPI Egypt", date: "Jul 2025 - Dec 2025", duties: ["Engaged in an intensive 6-month cybersecurity program, specializing in incident response.", "Contributed to the 'Smart Intrusion Detection System' project, focusing on rule tuning and alert analysis.", "Applied modern incident response playbooks in simulated cyber-attack scenarios."],}, { title: "Trainer", company: "TOP Academy", date: "Jan 2023 - Jan 2024", duties: ["Delivered training for Python and Microsoft IC3, enhancing students' technical competencies.", "Developed practical labs and exercises to prepare students for certification exams."],}, { title: "Data Center Maintenance", company: "Delta Higher Institute", date: "Aug 2024", duties: ["Participated in data center maintenance activities, including system updates and hardware inspections.", "Assisted in infrastructure configuration to ensure optimal performance and security."],}, ],
+                skills: [ "Splunk", "IBM QRadar", "Wazuh", "MITRE ATT&CK", "Threat Hunting", "Memory Forensics", "Disk Forensics", "Python", "Bash", "TCP/IP", "Firewalls", "VPNs", "Linux", "Windows Server", "TryHackMe"],
+                certifications: [
+                    { name: "Incident Response Analyst", issuer: "DEPI, Egypt", training: "AMIT", logo: "https://i.postimg.cc/Sxy0s9QS/download-3.png", noFilter: true },
+                    { name: "Certified Incident Responder", issuer: "eLearnSecurity", training: "Netriders", logo: "https://i.postimg.cc/w3YpFbdL/download-1.png", noFilter: true },
+                    { name: "SEC504 – GCIH", issuer: "SANS Institute", training: "Netriders", logo: "https://i.postimg.cc/w3YpFbdL/download-1.png", noFilter: true },
+                    { name: "SEC450 – GSOC", issuer: "SANS Institute", training: "Netriders", logo: "https://i.postimg.cc/w3YpFbdL/download-1.png", noFilter: true },
+                    { name: "Security+ SY0-601", issuer: "CompTIA", training: "Netriders", logo: "https://i.postimg.cc/w3YpFbdL/download-1.png", noFilter: true },
+                    { name: "Linux System Administrator", issuer: "Red Hat", training: "NTI, Egypt", logo: "https://i.postimg.cc/Rhryz6bz/download-6.png", noFilter: true },
+                    { name: "Network Engineer Trainee", issuer: "Cisco", training: "NTI, Egypt", logo: "https://upload.wikimedia.org/wikipedia/commons/6/64/Cisco_logo.svg" },
+                    { name: "HCIA – Datacom", issuer: "Huawei", training: "NTI, Egypt", logo: "https://i.postimg.cc/Znpk9FyR/download.jpg", noFilter: true },
+                    { name: "HCIA – CloudComputing", issuer: "Huawei", training: "NTI, Egypt", logo: "https://i.postimg.cc/Znpk9FyR/download.jpg", noFilter: true },
+                    { name: "Microsoft Certified Solutions Associate", issuer: "Microsoft", training: "Delta Academy", logo: "https://i.postimg.cc/6pxSPv4V/microsoft.png", noFilter: true },
+                    { name: "IT Technical Support Specialist", issuer: "DEPI, Egypt", training: "globalknowledge", logo: "https://i.postimg.cc/Sxy0s9QS/download-3.png", noFilter: true },
+                    { name: "Pre Security", issuer: "TryHackMe", training: "TryHackMe", logo: "https://i.postimg.cc/VLkBkLQy/download-7.png", noFilter: true },
+                    { name: "Cyber Security 101", issuer: "TryHackMe", training: "TryHackMe", logo: "https://i.postimg.cc/VLkBkLQy/download-7.png", noFilter: true },
+                    { name: "SOC Tier 1", issuer: "TryHackMe", training: "TryHackMe", logo: "https://i.postimg.cc/VLkBkLQy/download-7.png", noFilter: true },
+                    { name: "SOC Tier 2", issuer: "TryHackMe", training: "TryHackMe", logo: "https://i.postimg.cc/VLkBkLQy/download-7.png", noFilter: true },
+                ],
+                projects: [
+                    { title: "Vulnerability Assessment and Remediation Plan", description: "Developed a comprehensive vulnerability assessment and remediation plan for DEPI's network infrastructure as part of a capstone project.", image: "https://placehold.co/600x400/0A2F3A/0DF7F7?text=VA+Plan", tags: ["Vulnerability Assessment", "Cybersecurity", "DEPI"], link: "#",},
+                    { title: "Smart Intrusion Detection System", description: "A collaborative project focused on developing and implementing an advanced IDS. My role involved analyzing network traffic and fine-tuning detection rules.", image: "https://placehold.co/600x400/0A2F3A/0DF7F7?text=IDS+Project", tags: ["IDS/IPS", "Threat Detection", "Analysis"], link: "#",},
+                    { title: "SOC Simulation Labs", description: "Completed multiple hands-on labs on TryHackMe simulating a SOC environment, investigating alerts and performing log analysis with Splunk.", image: "https://placehold.co/600x400/0A2F3A/0DF7F7?text=SOC+Labs", tags: ["SIEM", "Splunk", "Log Analysis"], link: "#",},
+                    { title: "Network Troubleshooting Automation", description: "Developed Python and Bash scripts to automate common network diagnostic tasks, such as ping sweeps and port scanning.", image: "https://placehold.co/600x400/0A2F3A/0DF7F7?text=Automation", tags: ["Automation", "Python", "Bash"], link: "#",},
+                ],
+            },
+            ar: {
+                // Arabic translations can be added here in the same structure
+            }
+        };
+
+        let currentLang = 'en';
+        let typed;
+        
+        const renderContent = () => {
+            const langData = portfolioData[currentLang];
+            document.documentElement.lang = currentLang;
+            document.documentElement.dir = currentLang === 'ar' ? 'rtl' : 'ltr';
+            document.body.classList.toggle('font-cairo', currentLang === 'ar');
+            
+            document.querySelectorAll('[data-lang-key]').forEach(el => { 
+                const key = el.getAttribute('data-lang-key'); 
+                if (langData.text[key]) {
+                    const content = langData.text[key];
+                    if (typeof content === 'string') {
+                         el.textContent = content;
+                        if (el.classList.contains('glitch')) {
+                            el.dataset.text = content;
+                        }
+                    }
+                }
+            });
+            document.querySelectorAll('[data-lang-placeholder]').forEach(el => { const key = el.getAttribute('data-lang-placeholder'); if (langData.text[key]) el.placeholder = langData.text[key]; });
+            
+            document.getElementById('hero-objective').textContent = langData.objective;
+            document.querySelector('[data-lang-key="about_desc"]').textContent = langData.about;
+            
+            if (typed) typed.destroy();
+            typed = new Typed('#typed-role', { strings: langData.text.hero_role, typeSpeed: 70, backSpeed: 50, loop: true, backDelay: 2000 });
+            
+            const statsList = document.getElementById('stats-list');
+            statsList.innerHTML = '';
+            langData.stats.forEach(stat => { const label = langData.text[Object.keys(stat)[1]]; statsList.innerHTML += `<div class="glass-card p-4 tilt-effect"><p class="text-4xl font-bold text-primary-color mb-2">${stat.value}</p><p class="text-gray-400">${stat.label_en}</p></div>`; });
+            
+            const expertiseList = document.getElementById('expertise-list');
+            expertiseList.innerHTML = '';
+            langData.expertise.forEach((item, index) => { 
+                expertiseList.innerHTML += `
+                <div class="glass-card p-6 text-center tilt-effect fade-in-up" style="animation-delay: ${index * 0.2}s">
+                    <i class="${item.icon} text-4xl text-primary-color mb-4"></i>
+                    <h3 class="text-xl font-bold text-white mb-2">${item.title}</h3>
+                    <p class="text-gray-400">${item.description}</p>
+                </div>`; 
+            });
+            // Re-observe the new elements for the fade-in effect
+            document.querySelectorAll('#expertise-list .fade-in-up').forEach(item => observer.observe(item));
+
+
+            const experienceList = document.getElementById('experience-list');
+            experienceList.innerHTML = '';
+            langData.experience.forEach(item => { experienceList.innerHTML += `<div class="timeline-item"><div class="timeline-icon"><i class="fas fa-briefcase text-xs"></i></div><h3 class="font-bold text-xl text-white">${item.title}</h3><p class="text-primary-color font-semibold mb-1">${item.company} | ${item.date}</p><ul class="list-disc list-inside text-gray-400 space-y-2">${item.duties.map(duty => `<li>${duty}</li>`).join('')}</ul></div>`; });
+            
+            const skillsList = document.getElementById('skills-list');
+            skillsList.innerHTML = `<div class="flex flex-wrap justify-center gap-4">${langData.skills.map(skill => `<span class="bg-secondary-color text-primary-color text-md font-semibold px-5 py-2 rounded-md">${skill}</span>`).join('')}</div>`;
+            
+            const certList = document.getElementById('certifications-list');
+            certList.innerHTML = '';
+            langData.certifications.forEach(cert => { 
+                const noFilterClass = cert.noFilter ? 'no-filter' : '';
+                certList.innerHTML += `
+                    <div class="glass-card tilt-effect cert-card">
+                        <div class="cert-logo-container">
+                            <img src="${cert.logo}" alt="${cert.issuer} Logo" class="cert-logo ${noFilterClass}" onerror="this.parentElement.innerHTML = '<i class=&quot;fas fa-certificate text-3xl text-primary-color&quot;></i>'; this.remove();">
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="font-bold text-white">${cert.name}</h3>
+                            <p class="text-gray-400 text-sm">${cert.issuer}</p>
+                            <p class="text-primary-color/80 text-xs mt-1"><em>Training: ${cert.training}</em></p>
+                        </div>
+                    </div>`; 
+            });
+
+            const projectsGrid = document.getElementById('projects-grid');
+            const projectFilters = document.getElementById('project-filters');
+            projectsGrid.innerHTML = '';
+            const allTags = [...new Set(langData.projects.flatMap(p => p.tags))];
+            
+            projectFilters.innerHTML = `<button class="filter-btn active bg-primary-color text-black px-4 py-2 rounded-md" data-filter="all">${langData.text.project_filter_all || 'All'}</button>`;
+            allTags.forEach(tag => { projectFilters.innerHTML += `<button class="filter-btn bg-secondary-color text-gray-300 px-4 py-2 rounded-md" data-filter="${tag}">${tag}</button>`; });
+
+            langData.projects.forEach(project => {
+                projectsGrid.innerHTML += `<div class="glass-card overflow-hidden tilt-effect" data-tags="${project.tags.join(',')}"><img src="${project.image}" alt="${project.title}" class="w-full h-56 object-cover"><div class="p-6"><h3 class="text-xl font-bold text-white mb-2">${project.title}</h3><div class="flex flex-wrap gap-2 mb-4">${project.tags.map(tag => `<span class="bg-secondary-color text-primary-color text-xs font-semibold px-2 py-1 rounded-md">${tag}</span>`).join('')}</div><p class="text-gray-400 mb-4">${project.description}</p><a href="${project.link}" target="_blank" class="text-primary-color font-semibold hover:underline">${langData.text.project_link_text || 'Access Project'} <i class="fas fa-arrow-right ml-1"></i></a></div></div>`;
+            });
+            addFilterListeners();
+            addTiltEffect();
+
+            // Set social links
+            const linkedinLink = portfolioData.contact.linkedin;
+            const githubLink = portfolioData.contact.github;
+            const mediumLink = portfolioData.contact.medium;
+            document.getElementById('articles-linkedin').href = linkedinLink;
+            document.getElementById('articles-github').href = githubLink;
+            document.getElementById('articles-medium').href = mediumLink;
+            document.getElementById('contact-linkedin-footer').href = linkedinLink;
+            document.getElementById('contact-github-footer').href = githubLink;
+            document.getElementById('contact-medium-footer').href = mediumLink;
+
+            document.getElementById('contact-email-link').href = `mailto:${portfolioData.contact.email}`;
+            document.getElementById('footer-year').textContent = new Date().getFullYear();
+        };
+
+        const scrambleText = (element) => {
+            const originalText = element.dataset.originalText;
+            if (!originalText) return;
+            const chars = '!<>-_\\/[]{}—=+*^?#________';
+            let frame = 0; const frameRate = 3; const endFrame = originalText.length * frameRate;
+            const interval = setInterval(() => {
+                element.textContent = Array.from(originalText, (char, i) => {
+                    const progress = Math.floor(frame / frameRate);
+                    return i < progress ? originalText[i] : chars[Math.floor(Math.random() * chars.length)];
+                }).join('');
+                if (frame >= endFrame) { clearInterval(interval); element.textContent = originalText; }
+                frame++;
+            }, 30);
+        };
+        
+        const terminalOutput = document.getElementById('terminal-output');
+        const terminalInput = document.getElementById('terminal-input');
+
+        const typeToTerminal = (text, callback) => {
+            let i = 0; const p = document.createElement('p'); terminalOutput.appendChild(p);
+            const typing = setInterval(() => {
+                p.textContent += text[i]; i++;
+                terminalOutput.scrollTop = terminalOutput.scrollHeight;
+                if (i === text.length) { clearInterval(typing); if (callback) callback(); }
+            }, 20);
+        };
+
+        const executeCommand = (cmd) => {
+            const p = document.createElement('p'); p.innerHTML = `<span class="text-primary-color">user@AAG.dev:~$</span> ${cmd}`; terminalOutput.appendChild(p);
+            const commands = {
+                'help': () => typeToTerminal("Available commands: 'about', 'expertise', 'projects', 'contact', 'clear'"),
+                'about': () => { document.getElementById('about').scrollIntoView(); typeToTerminal("Navigating to 'About Me' section..."); },
+                'expertise': () => { document.getElementById('expertise').scrollIntoView(); typeToTerminal("Navigating to 'Areas of Expertise'..."); },
+                'projects': () => { document.getElementById('projects').scrollIntoView(); typeToTerminal("Loading project archives..."); },
+                'contact': () => { document.getElementById('contact').scrollIntoView(); typeToTerminal("Initializing contact sequence..."); },
+                'clear': () => { terminalOutput.innerHTML = ''; },
+                'sudo': () => typeToTerminal("Access denied. Nice try, though.")
+            };
+            commands[cmd] ? commands[cmd]() : typeToTerminal(`Command not found: ${cmd}. Type 'help' for available commands.`);
+            terminalInput.value = ''; terminalOutput.scrollTop = terminalOutput.scrollHeight;
+        };
+        
+        terminalInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { const command = e.target.value.trim().toLowerCase(); if(command) executeCommand(command); }});
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => { 
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                    const title = entry.target.querySelector('.section-title');
+                    if(title && !title.dataset.scrambled) {
+                        title.dataset.originalText = title.textContent; scrambleText(title); title.dataset.scrambled = "true";
+                    }
+                }
+            });
+        }, { threshold: 0.2 });
+        document.querySelectorAll('.fade-in-up').forEach(section => observer.observe(section));
+        
+        const addFilterListeners = () => {
+            const filterButtons = document.querySelectorAll('.filter-btn');
+            const projectCards = document.querySelectorAll('#projects-grid > div');
+            filterButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    filterButtons.forEach(btn => {btn.classList.remove('active', 'bg-primary-color', 'text-black'); btn.classList.add('bg-secondary-color', 'text-gray-300')});
+                    button.classList.add('active', 'bg-primary-color', 'text-black'); button.classList.remove('bg-secondary-color', 'text-gray-300');
+                    const filter = button.dataset.filter;
+                    projectCards.forEach(card => { 
+                        const cardTags = card.dataset.tags;
+                        card.style.display = (filter === 'all' || (cardTags && cardTags.includes(filter))) ? 'block' : 'none';
+                    });
+                });
+            });
+        };
+        
+        const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+        const mobileMenu = document.getElementById('mobile-menu');
+        mobileMenuBtn.addEventListener('click', () => mobileMenu.classList.toggle('hidden'));
+        document.querySelectorAll('.mobile-link').forEach(link => link.addEventListener('click', () => mobileMenu.classList.add('hidden')));
+        const header = document.getElementById('header');
+        window.addEventListener('scroll', () => { header.classList.toggle('bg-opacity-50', window.scrollY > 50); header.classList.toggle('backdrop-blur-lg', window.scrollY > 50); });
+        const toTopBtn = document.getElementById('to-top-btn');
+        window.addEventListener('scroll', () => toTopBtn.classList.toggle('show', window.scrollY > 300));
+        toTopBtn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+        const contactForm = document.getElementById('contact-form');
+        contactForm.addEventListener('submit', (e) => { e.preventDefault(); const successMsg = document.getElementById('form-success-message'); successMsg.textContent = portfolioData[currentLang].text.contact_form_success; successMsg.classList.remove('hidden'); contactForm.reset(); setTimeout(() => successMsg.classList.add('hidden'), 5000); });
+        
+        function addTiltEffect() {
+            const tiltElements = document.querySelectorAll(".tilt-effect");
+            tiltElements.forEach(el => {
+                el.addEventListener("mousemove", (e) => {
+                    const rect = el.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    const centerX = rect.width / 2;
+                    const centerY = rect.height / 2;
+                    const rotateX = ((y - centerY) / centerY) * 5;
+                    const rotateY = -((x - centerX) / centerX) * 5;
+                    el.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.05, 1.05, 1.05)`;
+                });
+                el.addEventListener("mouseleave", () => {
+                    el.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) scale3d(1, 1, 1)';
+                });
+            });
+        }
+        
+        let scene, camera, renderer, particles, lines;
+        const PARTICLE_COUNT = 100;
+        const MAX_DISTANCE = 120;
+
+        function initPlexus() {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.z = 300;
+            renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('plexus-canvas'), alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+
+            window.addEventListener('resize', () => {
+                if (camera && renderer) {
+                    camera.aspect = window.innerWidth / window.innerHeight;
+                    camera.updateProjectionMatrix();
+                    renderer.setSize(window.innerWidth, window.innerHeight);
+                }
+            });
+
+            const particleGeometry = new THREE.BufferGeometry();
+            const positions = new Float32Array(PARTICLE_COUNT * 3);
+            const velocities = [];
+
+            for (let i = 0; i < PARTICLE_COUNT; i++) {
+                positions[i * 3] = (Math.random() - 0.5) * 500;
+                positions[i * 3 + 1] = (Math.random() - 0.5) * 500;
+                positions[i * 3 + 2] = (Math.random() - 0.5) * 500;
+                velocities.push({ x: (Math.random() - 0.5) * 0.5, y: (Math.random() - 0.5) * 0.5, z: (Math.random() - 0.5) * 0.5 });
+            }
+            particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            particleGeometry.userData.velocities = velocities;
+
+            const particleMaterial = new THREE.PointsMaterial({ color: 0x0DF7F7, size: 3, sizeAttenuation: true });
+            particles = new THREE.Points(particleGeometry, particleMaterial);
+            scene.add(particles);
+
+            const lineGeometry = new THREE.BufferGeometry();
+            const linePositions = new Float32Array(PARTICLE_COUNT * PARTICLE_COUNT * 3);
+            lineGeometry.setAttribute('position', new THREE.BufferAttribute(linePositions, 3));
+            const lineMaterial = new THREE.LineBasicMaterial({ color: 0x0DF7F7, transparent: true, opacity: 0.1 });
+            lines = new THREE.LineSegments(lineGeometry, lineMaterial);
+            scene.add(lines);
+            
+            animatePlexus();
+        }
+
+        let mouse = new THREE.Vector2(-1000, -1000);
+        document.addEventListener('mousemove', (event) => {
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+        });
+
+        function animatePlexus() {
+            requestAnimationFrame(animatePlexus);
+            
+            if (!particles || !lines) return; 
+
+            const positions = particles.geometry.attributes.position.array;
+            const velocities = particles.geometry.userData.velocities;
+            const linePositions = lines.geometry.attributes.position.array;
+            let lineVertexIndex = 0;
+
+            for (let i = 0; i < PARTICLE_COUNT; i++) {
+                positions[i * 3] += velocities[i].x;
+                positions[i * 3 + 1] += velocities[i].y;
+                
+                if (positions[i * 3] < -250 || positions[i * 3] > 250) velocities[i].x *= -1;
+                if (positions[i * 3 + 1] < -250 || positions[i * 3 + 1] > 250) velocities[i].y *= -1;
+
+                for (let j = i + 1; j < PARTICLE_COUNT; j++) {
+                    const dx = positions[i * 3] - positions[j * 3];
+                    const dy = positions[i * 3 + 1] - positions[j * 3 + 1];
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+
+                    if (dist < MAX_DISTANCE) {
+                        linePositions[lineVertexIndex++] = positions[i * 3];
+                        linePositions[lineVertexIndex++] = positions[i * 3 + 1];
+                        linePositions[lineVertexIndex++] = positions[i * 3 + 2];
+                        linePositions[lineVertexIndex++] = positions[j * 3];
+                        linePositions[lineVertexIndex++] = positions[j * 3 + 1];
+                        linePositions[lineVertexIndex++] = positions[j * 3 + 2];
+                    }
+                }
+            }
+            
+            lines.geometry.attributes.position.needsUpdate = true;
+            lines.geometry.setDrawRange(0, lineVertexIndex / 3);
+            particles.geometry.attributes.position.needsUpdate = true;
+
+            if (camera && scene) {
+                camera.position.x += (mouse.x * 50 - camera.position.x) * 0.05;
+                camera.position.y += (mouse.y * 50 - camera.position.y) * 0.05;
+                camera.lookAt(scene.position);
+                renderer.render(scene, camera);
+            }
+        }
+        
+        const preloader = document.getElementById('preloader');
+        const preloaderText = document.getElementById('preloader-text');
+        const bootSequence = [ "INITIALIZING KERNEL...", "LOADING SYSTEM MODULES...", "DECRYPTING FILESYSTEM...", "ESTABLISHING SECURE CONNECTION...", "ACCESS GRANTED." ];
+        let seqIndex = 0;
+        const interval = setInterval(() => {
+            if(seqIndex < bootSequence.length) {
+                preloaderText.innerHTML += `<div>${bootSequence[seqIndex]}</div>`;
+                seqIndex++;
+            } else {
+                clearInterval(interval);
+                setTimeout(() => {
+                    preloader.style.opacity = '0';
+                    preloader.style.pointerEvents = 'none';
+                    document.body.classList.add('loaded');
+                    renderContent();
+                    typeToTerminal("Welcome to AbdulRhman's Portfolio Terminal.", () => typeToTerminal("Type 'help' to see available commands."));
+                    initPlexus();
+                }, 500);
+            }
+        }, 400);
+
+    });
+    </script>
 </body>
 </html>
+
